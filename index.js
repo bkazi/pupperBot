@@ -10,14 +10,19 @@ const GIPHY_LIMIT_PARAM = 'limit';
 
 const url = new URL(GIPHY_BASE_URL);
 url.pathname = GIPHY_SEARCH_PATH;
-url.searchParams.append(GIPHY_API_PARAM, GIPHY_API_KEY);
-url.searchParams.append(GIPHY_SEARCH_PARAM, 'cats');
-url.searchParams.append(GIPHY_LIMIT_PARAM, '2');
 
-request(url.toString())
-    .then((response) => {
-        return JSON.parse(response);
-    })
+const options = {
+    uri: url.toString(),
+    qs: {},
+    json: true,
+};
+
+options.qs[GIPHY_API_PARAM] = GIPHY_API_KEY;
+options.qs[GIPHY_SEARCH_PARAM] = 'cats';
+options.qs[GIPHY_LIMIT_PARAM] = 1;
+
+request(options)
     .then((json) => {
         const data = json.data;
-    });
+    })
+    .catch(console.error);
