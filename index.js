@@ -8,7 +8,10 @@ const readJson = promisify(jsonfile.readFile);
 const writeJson = promisify(jsonfile.writeFile);
 const request = require('request-promise-native');
 const Twitter = require('twitter');
+const http = require('http');
 
+const WAKEUP_ENDPOINT = process.env.WAKEUP_ENDPOINT;
+const PORT = process.env.PORT;
 const TWITTER_HANDLE = process.env.TWITTER_HANDLE;
 
 const client = new Twitter({
@@ -182,4 +185,18 @@ async function replyToMentions(client) {
     }
 }
 
-replyToMentions(client);
+function requestHandler(request, response) {
+    if (request.url === `/${WAKEUP_ENDPOINT}`) {
+        replyToMentions(client);
+    }
+    response.end('Hello World!');
+}
+
+const server = http.createServer(requestHandler);
+
+server.listen(PORT, (err) => {
+    if (err) {
+        console.error(err);
+        return;
+    }
+});
