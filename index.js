@@ -3,8 +3,13 @@ const {URL} = require('url');
 const fs = require('fs');
 const readFile = promisify(fs.readFile);
 const stat = promisify(fs.stat);
+const jsonfile = require('jsonfile');
+const readJson = promisify(jsonfile.readFile);
+const writeJson = promisify(jsonfile.writeFile);
 const request = require('request-promise-native');
 const Twitter = require('twitter');
+
+const TWITTER_HANDLE = process.env.TWITTER_HANDLE;
 
 const client = new Twitter({
     consumer_key: process.env.CONSUMER_KEY,
@@ -19,8 +24,9 @@ const GIPHY_API_PARAM = 'key';
 const GIPHY_API_KEY = process.env.GIPHY_API_KEY;
 const GIPHY_SEARCH_PARAM = 'q';
 const GIPHY_LIMIT_PARAM = 'limit';
+const GIPHY_OFFSET_PARAM = 'offset';
 
-async function getGIFS(searchQuery, limit=5) {
+async function getGIFS(searchQuery, limit=5, offset=0) {
     const url = new URL(GIPHY_BASE_URL);
     url.pathname = GIPHY_SEARCH_PATH;
 
@@ -33,6 +39,7 @@ async function getGIFS(searchQuery, limit=5) {
     options.qs[GIPHY_API_PARAM] = GIPHY_API_KEY;
     options.qs[GIPHY_SEARCH_PARAM] = searchQuery.replace(/\s/, '+');
     options.qs[GIPHY_LIMIT_PARAM] = limit;
+    options.qs[GIPHY_OFFSET_PARAM] = offset;
 
     let data;
     try {
@@ -123,15 +130,55 @@ async function uploadGIF(client, path) {
     return;
 }
 
-(async function(client) {
+// (async function(client) {
+//     try {
+//         const gifData = await getGIFS('cute cats dogs', 2);
+//         const imgUrls = gifData.map((data) => data.images.fixed_height.url);
+//         for (let url of imgUrls) {
+//             const mediaId = await uploadGIF(client, url);
+//             await client.post('statuses/update', {media_ids: mediaId});
+//         }
+//     } catch (e) {
+//         console.error(e);
+//     }
+// })(client);
+
+async function replyToMentions(client) {
     try {
-        const gifData = await getGIFS('cute cats dogs', 2);
-        const imgUrls = gifData.map((data) => data.images.fixed_height.url);
-        for (let url of imgUrls) {
-            const mediaId = await uploadGIF(client, url);
-            await client.post('statuses/update', {media_ids: mediaId});
+        const {lastMentionId} = await readJson('./data.json');
+        const data = await client.get(
+            'search/tweets',
+            {
+                q: `to:${TWITTER_HANDLE}`,
+                since_id: lastMentionId,
+            }
+        );
+        const mentions = data.statuses;
+
+        if (mentions.length) {
+            mentions.forEach(async (mention, index, arr) => {
+                const randomInt = Math.floor(Math.random() * (100 - 0)) + 0;
+                const gifData = await getGIFS('cute cats dogs', 1, randomInt);
+                const imgUrls = gifData[0].images.fixed_height.url;
+                const mediaId = await uploadGIF(client, imgUrls);
+                await client.post(
+                    'statuses/update',
+                    {
+                        media_ids: mediaId,
+                        in_reply_to_status_id: mention.id_str,
+                    }
+                );
+                if (index === arr.length - 1) {
+                    await writeJson(
+                        './data.json',
+                        {lastMentionId: mention.id_str}
+                    );
+                }
+            });
         }
     } catch (e) {
         console.error(e);
     }
-})(client);
+}
+
+replyToMentions(client);
