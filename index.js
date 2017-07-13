@@ -122,3 +122,16 @@ async function uploadGIF(client, path) {
     }
     return;
 }
+
+(async function(client) {
+    try {
+        const gifData = await getGIFS('cats', 2);
+        const imgUrls = gifData.map((data) => data.images.fixed_height.url);
+        for (let url of imgUrls) {
+            const mediaId = await uploadGIF(client, url);
+            await client.post('statuses/update', {media_ids: mediaId});
+        }
+    } catch (e) {
+        console.error(e);
+    }
+})(client);
