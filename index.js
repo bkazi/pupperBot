@@ -125,7 +125,7 @@ async function uploadGIF(client, path) {
 
 (async function(client) {
     try {
-        const gifData = await getGIFS('cats', 2);
+        const gifData = await getGIFS('cute cats dogs', 2);
         const imgUrls = gifData.map((data) => data.images.fixed_height.url);
         for (let url of imgUrls) {
             const mediaId = await uploadGIF(client, url);
