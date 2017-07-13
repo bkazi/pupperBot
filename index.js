@@ -26,7 +26,7 @@ const GIPHY_SEARCH_PARAM = 'q';
 const GIPHY_LIMIT_PARAM = 'limit';
 const GIPHY_OFFSET_PARAM = 'offset';
 
-async function getGIFS(searchQuery, limit=5, offset=0) {
+async function getGifs(searchQuery, limit=5, offset=0) {
     const url = new URL(GIPHY_BASE_URL);
     url.pathname = GIPHY_SEARCH_PATH;
 
@@ -89,7 +89,7 @@ async function uploadImage(client, path) {
     }
 }
 
-async function uploadGIF(client, path) {
+async function uploadGif(client, path) {
     try {
         let size;
         let data;
@@ -130,18 +130,18 @@ async function uploadGIF(client, path) {
     return;
 }
 
-// (async function(client) {
-//     try {
-//         const gifData = await getGIFS('cute cats dogs', 2);
-//         const imgUrls = gifData.map((data) => data.images.fixed_height.url);
-//         for (let url of imgUrls) {
-//             const mediaId = await uploadGIF(client, url);
-//             await client.post('statuses/update', {media_ids: mediaId});
-//         }
-//     } catch (e) {
-//         console.error(e);
-//     }
-// })(client);
+async function postSomeGifs(client) {
+    try {
+        const gifData = await getGifs('cute cats dogs', 2);
+        const imgUrls = gifData.map((data) => data.images.fixed_height.url);
+        for (let url of imgUrls) {
+            const mediaId = await uploadGif(client, url);
+            await client.post('statuses/update', {media_ids: mediaId});
+        }
+    } catch (e) {
+        console.error(e);
+    }
+};
 
 async function replyToMentions(client) {
     try {
@@ -158,12 +158,13 @@ async function replyToMentions(client) {
         if (mentions.length) {
             mentions.forEach(async (mention, index, arr) => {
                 const randomInt = Math.floor(Math.random() * (100 - 0)) + 0;
-                const gifData = await getGIFS('cute cats dogs', 1, randomInt);
-                const imgUrls = gifData[0].images.fixed_height.url;
-                const mediaId = await uploadGIF(client, imgUrls);
+                const gifData = await getGifs('cute cats dogs', 1, randomInt);
+                const imgUrl = gifData[0].images.fixed_height.url;
+                const mediaId = await uploadGif(client, imgUrl);
                 await client.post(
                     'statuses/update',
                     {
+                        status: `@${mention.user.screen_name}`,
                         media_ids: mediaId,
                         in_reply_to_status_id: mention.id_str,
                     }
